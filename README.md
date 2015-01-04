@@ -10,7 +10,7 @@ Work in progress.
     cd gossiperl-client-chrome/
     bower install
 
-Install [Chrome Apps & Extensions Developer Tools].(https://chrome.google.com/webstore/detail/chrome-apps-extensions-de/ohmmkhmmmpcnpikjeljgnaoabkaalbgc?hl=en). Launch the app and click "Load unpacked...". Navigate to the directory the the extension was cloned to and load the extension application.
+Install [Chrome Apps & Extensions Developer Tools](https://chrome.google.com/webstore/detail/chrome-apps-extensions-de/ohmmkhmmmpcnpikjeljgnaoabkaalbgc?hl=en). Launch the app and click "Load unpacked...". Navigate to the directory the the extension was cloned to and load the extension application.
 
 ## License
 
