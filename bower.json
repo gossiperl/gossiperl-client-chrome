@@ -1,0 +1,24 @@
+{
+  "name": "gossiperl-client-chrome",
+  "version": "0.1.0",
+  "main": "manifest.json",
+  "dependencies": {
+    "jquery": "~1.11.0",
+    "underscore": "~1.7.0",
+    "thrift": "radekg/thrift#js-binary-protocol",
+    "js-base64": "~2.1.5",
+    "qunit": "~1.14.0",
+    "browserify-cryptojs": "~0.3.1"
+  },
+  "authors": [
+    "radekg <radek@gruchalski.com>"
+  ],
+  "description": "Gossiperl Chrome client with a sample application",
+  "keywords": [
+    "gossiperl",
+    "client"
+  ],
+  "license": "MIT",
+  "homepage": "http://gossiperl.com",
+  "private": true
+}
