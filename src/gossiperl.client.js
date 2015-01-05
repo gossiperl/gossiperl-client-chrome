@@ -37,7 +37,7 @@ Gossiperl.Client.Supervisor.prototype.connect = function(config, listener) {
 }
 Gossiperl.Client.Supervisor.prototype.disconnect = function(overlayName) {
   if ( this.isConnection( overlayName ) ) {
-
+    this.connections[ overlayName ].stop();
   } else {
     throw new Error("[supervisor] No overlay connection: " + overlayName);
   }
@@ -48,14 +48,14 @@ Gossiperl.Client.Supervisor.prototype.disconnected = function(config) {
 }
 Gossiperl.Client.Supervisor.prototype.subscribe = function(overlayName, events) {
   if ( this.isConnection( overlayName ) ) {
-    this.connections[ overlayName ].state.subscribe( events );
+    return this.connections[ overlayName ].state.subscribe( events );
   } else {
     throw new Error("[supervisor] No overlay connection: " + overlayName);
   }
 }
 Gossiperl.Client.Supervisor.prototype.unsubscribe = function(overlayName, events) {
   if ( this.isConnection( overlayName ) ) {
-    this.connections[ overlayName ].state.unsubscribe( events );
+    return this.connections[ overlayName ].state.unsubscribe( events );
   } else {
     throw new Error("[supervisor] No overlay connection: " + overlayName);
   }
@@ -91,7 +91,9 @@ Gossiperl.Client.Supervisor.prototype.isConnection = function(overlayName) {
   return _.keys(this.connections).indexOf( overlayName ) > -1;
 }
 Gossiperl.Client.Supervisor.prototype.stop = function() {
-  
+  _.each(_.values(this.connections), function(worker) {
+    worker.stop();
+  });
 }
 
 /**
@@ -371,11 +373,13 @@ Gossiperl.Client.Transport.Udp.prototype.send = function(digest) {
     bufView[i] = encrypted.charCodeAt(i);
   }
   var _$self = this;
-  chrome.sockets.udp.send(this.socketId, buf, "127.0.0.1", this.worker.config.overlayPort, function(sendInfo) {
-    if ( sendInfo.resultCode < 0 ) {
-      _$self.worker.listener.apply(_$self.worker, [ { event: 'failed', error: { reason: sendInfo, detail: 'Digest not sent.' } } ]);
-    }
-  });
+  if ( this.worker.working ) {
+    chrome.sockets.udp.send(this.socketId, buf, "127.0.0.1", this.worker.config.overlayPort, function(sendInfo) {
+      if ( sendInfo.resultCode < 0 ) {
+        _$self.worker.listener.apply(_$self.worker, [ { event: 'failed', error: { reason: sendInfo, detail: 'Digest not sent.' } } ]);
+      }
+    });
+  }
 };
 
 /**
@@ -432,12 +436,8 @@ Gossiperl.Client.Serialization.Serializer.prototype.deserialize = function(binDi
 Gossiperl.Client.Serialization.Serializer.prototype.digestToBinary = function(digest) {
   var transport = new Thrift.TWebSocketTransport("http://dummy");
   var protocol  = new Thrift.BinaryProtocol( transport );
-  try {
-    digest.write(protocol);
-    return protocol.buffer;
-  } catch (e) {
-    console.log("[ERROR] : ", e)
-  }
+  digest.write(protocol); // any potential errors are being caught in the upper layer
+  return protocol.buffer;
 }
 
 Gossiperl.Client.Serialization.Serializer.prototype.digestFromBinary = function(digestType, binDigest) {
@@ -445,12 +445,8 @@ Gossiperl.Client.Serialization.Serializer.prototype.digestFromBinary = function(
   var protocol  = new Thrift.BinaryProtocol( transport );
   protocol.buffer = binDigest;
   var digest = Gossiperl.Client.getAnnotatedDigest(digestType);
-  try {
-    digest.read(protocol);
-    return digest;
-  } catch (e) {
-    console.log("[ERROR] : ", e)
-  }
+  digest.read(protocol); // any potential errors are being caught in the upper layer
+  return digest;
 };
 
 Gossiperl.Client.Serialization.Serializer.prototype.isGossiperlDigest = function(digest) {
