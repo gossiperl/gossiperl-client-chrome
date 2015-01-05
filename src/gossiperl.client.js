@@ -99,9 +99,39 @@ Gossiperl.Client.Supervisor.prototype.stop = function() {
  */
 
 Gossiperl.Client.OverlayWorker = function(supervisor, config, listener) {
+  var defaultListener = function( e ) {
+    switch (e.event) {
+      case 'connected':
+        console.log("[" + this.config.clientName + "] Connected to an overlay.");
+        break;
+      case 'disconnected':
+        console.log("[" + this.config.clientName + "] Disconnected from an overlay.");
+        break;
+      case 'subscribed':
+        console.log("[" + this.config.clientName + "] Subscribed to events: " + e.events + ".");
+        break;
+      case 'unsubscribed':
+        console.log("[" + this.config.clientName + "] Unsubscribed from events: " + e.events + ".");
+        break;
+      case 'event':
+        console.log("[" + this.config.clientName + "] Received member related event. Event type " + e.eventType + ", member " + e.member + ", heartbeat: " + e.heartbeat + ".");
+        break;
+      case 'forwardedAck':
+        console.log("[" + this.config.clientName + "] Received confirmation of forwarded message. Message ID: " + e.replyId + ".");
+        break;
+      case 'forwarded':
+        console.log("[" + this.config.clientName + "] Received forwarded digest " + e.binEnvelope + " of type " + e.digestType + " with ID " + e.envelopeId + ".");
+        break;
+      case 'failed':
+        console.error("[" + this.config.clientName + "] Received a client error: " + e.error + ".");
+        break;
+      default:
+        console.error("[" + this.config.clientName + "] Unsupported event: " + e + ".");
+    }
+  };
   this.supervisor = supervisor;
   this.config = config;
-  this.listener = listener;
+  this.listener = ( typeof(listener) === 'function' ? listener : defaultListener);
   this.messaging = new Gossiperl.Client.Messaging(this);
   this.state = new Gossiperl.Client.State(this);
   this.working = true;
@@ -140,8 +170,7 @@ Gossiperl.Client.State.prototype.start = function() {
       this.sendDigest.apply(this);
       if ( Gossiperl.Client.Util.getTimestamp() - this.lastTs > 5 ) {
         if (this.status === Gossiperl.Client.StateStatus.CONNECTED) {
-          // TODO: announce disconnect
-          console.log("Disconnected!");
+          this.worker.listener.apply(this.worker, [ {event: 'disconnected'} ]);
         }
         this.status = Gossiperl.Client.StateStatus.DISCONNECTED;
       }
@@ -154,8 +183,7 @@ Gossiperl.Client.State.prototype.start = function() {
           func.apply(_$self, [func]);
         }, 2000);
       } else {
-        // TODO: announce shutdown...
-        console.log("Shutting down. Disconnected!");
+        this.worker.listener.apply(this.worker, [ {event: 'disconnected'} ]);
       }
     };
     f.apply(_$self, [f]);
@@ -164,7 +192,7 @@ Gossiperl.Client.State.prototype.start = function() {
 Gossiperl.Client.State.prototype.digestAck = function(ack) {
   if ( this.status === Gossiperl.Client.StateStatus.DISCONNECTED ) {
     // TODO: announce connected:
-    console.log("Connected!");
+    this.worker.listener.apply(this.worker, [ {event: 'connected'} ]);
     if ( this.subscriptions.length > 0 ) {
       this.worker.messaging.digestSubscribe(this.subscriptions);
     }
@@ -201,7 +229,10 @@ Gossiperl.Client.Messaging.prototype.receive = function(digest) {
   }
 }
 Gossiperl.Client.Messaging.prototype.receiveForward = function(forwardData) {
-  // TODO: implement:
+  this.worker.listener.apply( this.worker, [ { event: 'forwarded',
+                                               binEnvelope: forwardData.envelope,
+                                               envelopeId: forwardData.id,
+                                               digestType: forwardData.type } ] );
 }
 
 Gossiperl.Client.Transport.Udp = function(worker) {
@@ -233,18 +264,18 @@ Gossiperl.Client.Transport.Udp.prototype.setup = function() {
                     _$self.worker.messaging.receiveForward( deserialized );
                   }
                 } catch (e) {
-                  // TODO: notify deserialize error:
+                  _$self.worker.listener.apply(_$self.worker, [ { event: 'failed', error: { reason: e, detail: 'Error while deserializing digest.' } } ]);
                 }
               } catch (e) {
-                // TODO: notify decrypt error:
+                _$self.worker.listener.apply(_$self.worker, [ { event: 'failed', error: { reason: e, detail: 'Error while decrypting digest.' } } ]);
               }
             } catch (e) {
-              // TODO: notify data receive error:
+              _$self.worker.listener.apply(_$self.worker, [ { event: 'failed', error: { reason: e, detail: 'Error while receiving the data.' } } ]);
             }
           }
         });
         chrome.sockets.udp.onReceiveError.addListener(function(errorInfo) {
-          // TODO: notify socket receive error
+          _$self.worker.listener.apply(_$self.worker, [ { event: 'failed', error: { reason: errorInfo, detail: 'Socket error.' } } ]);
         });
       } else {
         console.error("Could not bind UDP socket to 127.0.0.1:" + _$self.worker.config.clientPort);
@@ -260,9 +291,10 @@ Gossiperl.Client.Transport.Udp.prototype.send = function(digest) {
   for ( var i=0; i<encrypted.length; i++ ) {
     bufView[i] = encrypted.charCodeAt(i);
   }
+  var _$self = this;
   chrome.sockets.udp.send(this.socketId, buf, "127.0.0.1", this.worker.config.overlayPort, function(sendInfo) {
     if ( sendInfo.resultCode < 0 ) {
-      // TODO: notify send error
+      _$self.worker.listener.apply(_$self.worker, [ { event: 'failed', error: { reason: sendInfo, detail: 'Digest not sent.' } } ]);
     }
   });
 };
