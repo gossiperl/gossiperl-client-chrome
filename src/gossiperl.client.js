@@ -72,14 +72,14 @@ Gossiperl.Client.Supervisor.prototype.read = function(digestType, binDigest, dig
 }
 Gossiperl.Client.Supervisor.prototype.getCurrentState = function(overlayName) {
   if ( this.isConnection( overlayName ) ) {
-
+    this.connections[ overlayName ].state.status;
   } else {
     throw new Error("[supervisor] No overlay connection: " + overlayName);
   }
 }
 Gossiperl.Client.Supervisor.prototype.getSubscriptions = function(overlayName) {
   if ( this.isConnection( overlayName ) ) {
-
+    this.connections[ overlayName ].state.subscriptions;
   } else {
     throw new Error("[supervisor] No overlay connection: " + overlayName);
   }
