@@ -7,6 +7,7 @@ module("Serialization tests");
   var symmetricKey = "v3JElaRswYgxOt4b";
   var overlayName = "gossiper_overlay_remote";
   var overlayPort = 6666;
+  var events = ["member_in", "digestForwardableTest"];
 
   test("Process", function() {
     var supervisor = new Gossiperl.Client.Supervisor();
@@ -21,6 +22,12 @@ module("Serialization tests");
     };
     supervisor.connect(config);
     equal(supervisor.getNumberOfConnections(),1);
+    setTimeout(function() {
+      supervisor.subscribe( config.overlayName, events );
+      setTimeout(function() {
+        supervisor.unsubscribe( config.overlayName, events );
+      }, 3000);
+    }, 3000);
   });
 
   /*
