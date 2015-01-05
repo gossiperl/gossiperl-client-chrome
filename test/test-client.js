@@ -10,8 +10,13 @@ module("Serialization tests");
   var events = ["member_in", "digestForwardableTest"];
 
   test("Process", function() {
+    
+    QUnit.stop();
+
     var supervisor = new Gossiperl.Client.Supervisor();
+    
     equal(supervisor.getNumberOfConnections(),0);
+    
     var config = {
       overlayName:  overlayName,
       overlayPort:  overlayPort,
@@ -22,15 +27,32 @@ module("Serialization tests");
     };
     supervisor.connect(config);
     equal(supervisor.getNumberOfConnections(),1);
+
     setTimeout(function() {
-      supervisor.subscribe( config.overlayName, events );
+      
+      var resp = supervisor.subscribe( config.overlayName, events );
+      deepEqual(resp, events);
+
       setTimeout(function() {
-        supervisor.unsubscribe( config.overlayName, events );
+        
+        var resp = supervisor.unsubscribe( config.overlayName, events );
+        deepEqual(resp, []);
+
+        setTimeout(function() {
+
+          supervisor.disconnect( config.overlayName );
+          equal(supervisor.getNumberOfConnections(),0);
+
+          setTimeout(function() {
+            
+            QUnit.start();
+
+          }, 1500);
+        }, 3000);
       }, 3000);
     }, 3000);
   });
-
-  /*
+  
   test("Simple serialize / deserialize", function() {
     
     var digest = Gossiperl.Client.getAnnotatedDigest("Digest", {
@@ -71,4 +93,4 @@ module("Serialization tests");
     equal( deserialized.id, digest.id );
     equal( deserialized.secret, clientSecret );
   });
-  */
+  
