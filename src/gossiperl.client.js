@@ -114,7 +114,7 @@ Gossiperl.Client.OverlayWorker = function(supervisor, config, listener) {
         console.log("[" + this.config.clientName + "] Unsubscribed from events: " + e.events + ".");
         break;
       case 'event':
-        console.log("[" + this.config.clientName + "] Received member related event. Event type " + e.eventType + ", member " + e.member + ", heartbeat: " + e.heartbeat + ".");
+        console.log("[" + this.config.clientName + "] Received member related event. Event type " + e.type + ", member " + e.member + ", heartbeat: " + e.heartbeat + ".");
         break;
       case 'forwardedAck':
         console.log("[" + this.config.clientName + "] Received confirmation of forwarded message. Message ID: " + e.replyId + ".");
@@ -271,6 +271,15 @@ Gossiperl.Client.Messaging.prototype.digestForwardedAck = function(replyId) {
   });
   this.send(digest);
 };
+Gossiperl.Client.Messaging.prototype.digestExit = function() {
+  var digest = Gossiperl.Client.getAnnotatedDigest("DigestExit", {
+    name: this.worker.config.clientName,
+    secret: this.worker.config.clientSecret,
+    heartbeat: Gossiperl.Client.Util.getTimestamp()
+  });
+  this.send(digest);
+  return true;
+};
 Gossiperl.Client.Messaging.prototype.send = function(digest) {
   this.transport.send( digest );
 };
@@ -278,15 +287,23 @@ Gossiperl.Client.Messaging.prototype.receive = function(digest) {
   if ( digest.__annotated_type === 'Digest' ) {
     this.digestAck( digest );
   } else if ( digest.__annotated_type === 'DigestEvent' ) {
-    // TODO: implement
+    this.worker.listener.apply(this.worker, [ { event: 'event',
+                                                type: digest.event_type,
+                                                member: digest.event_object,
+                                                heartbeat: digest.heartbeat } ]);
   } else if ( digest.__annotated_type === 'DigestAck' ) {
     this.worker.state.digestAck( digest );
   } else if ( digest.__annotated_type === 'DigestSubscribeAck' ) {
-    this.worker.listener.apply(this.worker, [ { event: 'subscribed', events: digest.event_types, heartbeat: digest.heartbeat } ]);
+    this.worker.listener.apply(this.worker, [ { event: 'subscribed',
+                                                events: digest.event_types,
+                                                heartbeat: digest.heartbeat } ]);
   } else if ( digest.__annotated_type === 'DigestUnsubscribeAck' ) {
-    this.worker.listener.apply(this.worker, [ { event: 'unsubscribed', events: digest.event_types, heartbeat: digest.heartbeat } ]);
+    this.worker.listener.apply(this.worker, [ { event: 'unsubscribed',
+                                                events: digest.event_types,
+                                                heartbeat: digest.heartbeat } ]);
   } else if ( digest.__annotated_type === 'DigestForwardedAck' ) {
-    // TODO: implement
+    this.worker.listener.apply(this.worker, [ { event: 'forwardedAck',
+                                                replyId: digest.reply_id } ]);
   }
 }
 Gossiperl.Client.Messaging.prototype.receiveForward = function(forwardData) {
