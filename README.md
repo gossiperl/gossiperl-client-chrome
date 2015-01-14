@@ -1,12 +1,12 @@
 # Google Chrome Extension Gossiperl client
 
-Google Chrome Extension [gossiperl](https://github.com/radekg/gossiperl) client library.
+Google Chrome Extension [gossiperl](http://gossiperl.com) client library.
 
 Work in progress.
 
 ## Installation
 
-    git clone https://github.com/radekg/gossiperl-client-chrome.git
+    git clone https://github.com/gossiperl/gossiperl-client-chrome.git
     cd gossiperl-client-chrome/
     bower install
 
