@@ -6,7 +6,8 @@
     "jquery": "~1.11.0",
     "underscore": "~1.7.0",
     "thrift": "~0.9.2",
-    "thrift-js-binary-protocol": "gossiperl/thrift-js-binary-protocol",
+    "thrift-js-binary-protocol": "gossiperl/thrift-js-binary-protocol#rads-bleeding-edge",
+    "gossiperl-client-js": "gossiperl/gossiperl-client-js",
     "js-base64": "~2.1.5",
     "qunit": "~1.14.0",
     "browserify-cryptojs": "~0.3.1"

@@ -24,7 +24,7 @@ window.chrome.app.runtime.onRestarted.addListener(function() {
  */
 function runApp() {
   window.chrome.app.window.create(
-      'test/test-client.html',
+      'bower_components/gossiperl-client-js/test/tests.chrome.html',
       {'id': 'browserWinID', 'state': 'maximized'},
       function(newWindow) {
       // Do not inject meaningful window.newWindowEvent; browser will instead
